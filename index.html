@@ -309,11 +309,10 @@
           <div class="my-8">
             <p class="text-[12.5px] font-mono text-[var(--ink-dim)] mb-2">▶ ILUSTRASI VIDEO — Cara membaca &amp; menggambar ERD</p>
 <div class="video-frame">
-  <video class="w-full h-full" controls>
-    <source src="erd.mp4" type="video/mp4">
-    Browser Anda tidak mendukung tag video.
-  </video>
-</div>
+              <video class="w-full h-full" controls preload="metadata">
+                <source src="erd.mp4" type="video/mp4">
+                Browser Anda tidak mendukung tag video.
+              </video>
             </div>
           </div>
 
@@ -396,11 +395,10 @@ campuses(code, name)                        ✓</div>
           <div class="my-8">
             <p class="text-[12.5px] font-mono text-[var(--ink-dim)] mb-2">▶ ILUSTRASI VIDEO — Cara membaca &amp; menggambar ERD</p>
 <div class="video-frame">
-  <video class="w-full h-full" controls>
-    <source src="normalisasi.mp4" type="video/mp4">
-    Browser Anda tidak mendukung tag video.
-  </video>
-</div>
+              <video class="w-full h-full" controls preload="metadata">
+                <source src="normalisasi.mp4" type="video/mp4">
+                Browser Anda tidak mendukung tag video.
+              </video>
             </div>
           </div>
 
@@ -570,16 +568,8 @@ campuses(code, name)                        ✓</div>
           <p class="text-[13px] text-[var(--ink-dim)] mb-8">Perhatikan: <strong>401</strong> berarti server belum tahu siapa Anda (belum/salah login), sedangkan <strong>403</strong> berarti server sudah tahu siapa Anda tetapi tidak mengizinkan akses.</p>
 
           <div class="image-frame" onclick="openImageModal('Restapi.png')">
-          <img class="w-full h-full image-hover-zoom" src="Restapi.png" alt="Entity Relationship Diagram" title="Entity Relationship Diagram">
-        </div>
-
-        <!-- Modal untuk zoom gambar -->
-        <div id="imageModal" class="image-modal" onclick="closeImageModal(event)">
-          <span class="image-modal-close" onclick="closeImageModal(event)">&times;</span>
-          <div class="image-modal-content-wrapper">
-            <img id="modalImage" class="image-modal-content" src="" alt="Zoom view">
+            <img class="w-full h-full image-hover-zoom" src="Restapi.png" alt="Diagram Kontrak REST API" title="Diagram Kontrak REST API">
           </div>
-        </div>
 
           <h3 class="font-head text-[17px] font-semibold mt-8 mb-3">Dokumentasi Kontrak API — Studi Kasus Portofolio-React</h3>
           <p class="text-[14px] mb-3">Konvensi penamaan REST menggunakan kata benda jamak pada <em>path</em> (mis. <code class="font-mono text-[12.5px]">/api/projects</code>, bukan <code class="font-mono text-[12.5px]">/api/getProject</code>). Berikut kontrak lengkap hasil rekayasa, melanjutkan tiga baris contoh pada LK-8:</p>
@@ -638,17 +628,9 @@ eyJhbGci...  eyJpZCI6...  SflKxwRJ...</div>
             <p class="text-[14px]">{{ jwtSteps[jwtStep].desc }}</p>
           </div>
 
-  <div class="image-frame" onclick="openImageModal('jwt.png')">
-          <img class="w-full h-full image-hover-zoom" src="jwt.png" alt="Entity Relationship Diagram" title="Entity Relationship Diagram">
-        </div>
-
-        <!-- Modal untuk zoom gambar -->
-        <div id="imageModal" class="image-modal" onclick="closeImageModal(event)">
-          <span class="image-modal-close" onclick="closeImageModal(event)">&times;</span>
-          <div class="image-modal-content-wrapper">
-            <img id="modalImage" class="image-modal-content" src="" alt="Zoom view">
+          <div class="image-frame" onclick="openImageModal('jwt.png')">
+            <img class="w-full h-full image-hover-zoom" src="jwt.png" alt="Diagram Alur JWT" title="Diagram Alur JWT">
           </div>
-        </div>
 
           <p class="text-[13px] text-[var(--ink-dim)]">Praktik ini mengikuti panduan resmi JWT.io<sup class="font-mono">[4]</sup> dan OWASP REST Security Cheat Sheet.<sup class="font-mono">[5]</sup></p>
         </div>
@@ -742,6 +724,14 @@ Content-Type: application/json
       </section>
 
     </main>
+  </div>
+
+  <!-- Modal global untuk zoom gambar (dipakai semua .image-frame) -->
+  <div id="imageModal" class="image-modal" onclick="closeImageModal(event)">
+    <span class="image-modal-close" onclick="closeImageModal(event)">&times;</span>
+    <div class="image-modal-content-wrapper">
+      <img id="modalImage" class="image-modal-content" src="" alt="Zoom view">
+    </div>
   </div>
 
 </div>
