@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Blueprint Sistem — Merancang Basis Data &amp; Kontrak API Menuju Backend</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-950:#071a2c; --navy-900:#0b2e4f; --navy-800:#123b62;
+    --blue-line:#4fc3f7; --blue-line-dim:#2e5f7d;
+    --paper:#fbf7ee; --paper-dim:#f1ead9;
+    --ink:#1c1b1a; --ink-dim:#5b564c;
+    --amber:#dfa526; --green:#2f9e44; --red:#c1440e;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Source Serif 4', Georgia, serif; line-height:1.65; }
+  .font-head{font-family:'Space Grotesk', sans-serif;}
+  .font-mono{font-family:'IBM Plex Mono', monospace;}
+  .blueprint-bg{
+    background-color: var(--navy-900);
+    background-image:
+      linear-gradient(rgba(79,195,247,.14) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79,195,247,.14) 1px, transparent 1px),
+      linear-gradient(rgba(79,195,247,.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79,195,247,.06) 1px, transparent 1px);
+    background-size: 88px 88px, 88px 88px, 22px 22px, 22px 22px;
+  }
+  .sheet{ background:var(--paper); border:1px solid #d9cfb4; box-shadow: 0 1px 0 #d9cfb4, 0 12px 30px -18px rgba(11,46,79,.35); position:relative; }
+  .sheet::before{
+    content:attr(data-tag); position:absolute; top:-13px; left:28px;
+    background:var(--navy-900); color:var(--paper); font-family:'IBM Plex Mono', monospace;
+    font-size:11px; letter-spacing:.08em; padding:3px 10px; border-radius:2px;
+  }
+  .pin{ width:8px;height:8px;border-radius:50%; background:var(--amber); box-shadow:0 0 0 3px rgba(223,165,38,.18); }
+  .toc-link{ display:block; padding:7px 10px 7px 14px; border-left:2px solid transparent; color:#cfe6f5; font-size:13.5px; transition:all .15s ease; text-decoration:none;}
+  .toc-link:hover{ color:#fff; border-left-color:var(--blue-line-dim); }
+  .toc-link.active{ color:#fff; border-left-color:var(--blue-line); background:rgba(79,195,247,.08); }
+  .badge{ display:inline-flex; align-items:center; gap:6px; font-family:'IBM Plex Mono', monospace; font-size:11.5px; letter-spacing:.02em; padding:3px 9px; border-radius:3px; border:1px solid currentColor; }
+  .kv-table td, .kv-table th{ border:1px solid #d9cfb4; padding:8px 10px; vertical-align:top; }
+  .kv-table th{ background:var(--paper-dim); font-family:'Space Grotesk',sans-serif; font-weight:600; text-align:left; font-size:12.5px;}
+  .kv-table td{ font-size:13.5px; }
+  .method-GET{ color:#1565c0; font-weight:600;}
+  .method-POST{ color:#2f9e44; font-weight:600;}
+  .method-PUT, .method-PATCH{ color:#c07800; font-weight:600;}
+  .method-DELETE{ color:#c1440e; font-weight:600;}
+  .code-box{ background:#0d1b26; color:#dbe9f3; border-radius:8px; font-family:'IBM Plex Mono', monospace; font-size:12.6px; padding:14px 16px; overflow-x:auto; white-space:pre; }
+  .video-frame{ aspect-ratio:16/9; width:100%; border-radius:10px; overflow:hidden; border:1px solid var(--blue-line-dim); }
+  ::selection{ background:var(--amber); color:#1c1b1a; }
+  .scroll-progress{ position:fixed; top:0; left:0; height:3px; background:var(--amber); z-index:60; transition:width .1s linear; }
+  .tab-btn{ font-family:'Space Grotesk',sans-serif; font-size:13px; padding:8px 14px; border-radius:6px 6px 0 0; cursor:pointer; border:1px solid transparent; }
+  .tab-btn.active{ background:var(--paper); border-color:#d9cfb4; border-bottom-color:var(--paper); color:var(--navy-900); font-weight:600; }
+  .tab-btn:not(.active){ color:#8a8474; }
+  [v-cloak]{ display:none; }
+  .erd-box{ transition: filter .15s ease, transform .15s ease; cursor:pointer; }
+  .erd-box:hover{ filter:brightness(1.15); transform:translateY(-2px); }
+  .chk{ accent-color:var(--navy-900); width:16px;height:16px; }
+  @media (max-width:1023px){ .desktop-toc{ display:none; } }
+
+  /* Frame gambar dengan efek hover zoom */
+.image-frame {
+  overflow: hidden;
+  cursor: zoom-in;
+  position: relative;
+  border-radius: 8px;
+}
+
+.image-hover-zoom {
+  transition: transform 0.4s ease;
+  display: block;
+  object-fit: cover;
+}
+
+.image-frame:hover .image-hover-zoom {
+  transform: scale(1.15);
+}
+
+/* Modal overlay */
+.image-modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  cursor: zoom-out;
+}
+
+.image-modal.active {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.image-modal-content-wrapper {
+  overflow: hidden;
+  width: 90%;
+  height: 90%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.image-modal-content {
+  max-width: 90%;
+  max-height: 90%;
+  transition: transform 0.2s ease;
+  cursor: grab;
+  transform-origin: center center;
+}
+
+.image-modal-content:active {
+  cursor: grabbing;
+}
+
+.image-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 35px;
+  color: #f1f1f1;
+  font-size: 40px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 1001;
+}
+
+.image-modal-close:hover {
+  color: #bbb;
+}
+
+/* Watermark diagonal anti-copy */
+.watermark-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='320'%20height='160'%3E%3Ctext%20x='0'%20y='90'%20font-family='Space%20Grotesk,sans-serif'%20font-size='22'%20font-weight='700'%20fill='%233F51B5'%20transform='rotate(-30%20160%2080)'%3E%C2%A9%20MAyx%202026%3C/text%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+</style>
+</head>
+<body>
+<div class="watermark-overlay"></div>
+<div id="app" v-cloak>
+  <div class="scroll-progress" :style="{width: scrollPct + '%'}"></div>
+
+  <!-- ============ TOP NAV (mobile) ============ -->
+  <div class="lg:hidden sticky top-0 z-50 blueprint-bg border-b border-[#2e5f7d] px-4 py-2.5 flex items-center justify-between">
+    <span class="font-head text-[13px] text-white tracking-wide">BLUEPRINT SISTEM</span>
+    <button @click="mobileNavOpen = !mobileNavOpen" class="text-white font-mono text-xs border border-[#2e5f7d] rounded px-2 py-1">
+      {{ mobileNavOpen ? 'Tutup ✕' : 'Daftar Isi ☰' }}
+    </button>
+  </div>
+  <div v-if="mobileNavOpen" class="lg:hidden blueprint-bg px-4 pb-4 pt-1 border-b border-[#2e5f7d]">
+    <a v-for="s in sections" :key="s.id" :href="'#'+s.id" @click="mobileNavOpen=false"
+       class="toc-link" :class="{active: activeSection===s.id}">{{ s.label }}</a>
+  </div>
+
+  <div class="lg:flex">
+    <!-- ============ SIDEBAR TOC (desktop) ============ -->
+    <aside class="desktop-toc lg:w-[248px] lg:shrink-0 blueprint-bg lg:h-screen lg:sticky lg:top-0 px-5 py-7 flex flex-col">
+      <div class="flex items-center gap-2 mb-1">
+<img src="RPL.png" width="26" height="22" alt="Logo RPL SMK Pusdikhubad Cimahi" style="object-fit: contain;">
+        <div class="font-head text-white text-[13.5px] leading-tight tracking-wide">BLUEPRINT<br/>SISTEM</div>
+      </div>
+      <p class="text-[11px] font-mono text-[#7fb2cc] mb-6">v1.0 · Vue 3 + Tailwind</p>
+      <nav class="flex-1 overflow-y-auto -mx-1">
+        <a v-for="s in sections" :key="s.id" :href="'#'+s.id"
+           class="toc-link" :class="{active: activeSection===s.id}">{{ s.label }}</a>
+      </nav>
+      <div class="mt-6 pt-4 border-t border-[#2e5f7d]">
+        <div class="text-[11px] font-mono text-[#7fb2cc] mb-2">Progres Baca</div>
+        <div class="h-1.5 w-full bg-[#123b62] rounded-full overflow-hidden">
+          <div class="h-full bg-[var(--amber)]" :style="{width: scrollPct+'%'}"></div>
+        </div>
+        <div class="text-[11px] font-mono text-[#7fb2cc] mt-1">{{ Math.round(scrollPct) }}%</div>
+      </div>
+    </aside>
+
+    <!-- ============ MAIN CONTENT ============ -->
+    <main class="flex-1 min-w-0">
+
+      <!-- HERO -->
+      <section id="beranda" class="blueprint-bg relative overflow-hidden px-6 sm:px-12 py-16 sm:py-24">
+        <div class="max-w-3xl mx-auto relative">
+          <div class="flex items-center gap-2 mb-6">
+            <span class="badge text-[#7fdbff]">LKM · Pemrograman Web · Fase F</span>
+            <span class="badge text-[#dfa526]">Rekayasa Perangkat Lunak</span>
+          </div>
+          <h1 class="font-head text-white text-[32px] sm:text-[46px] leading-[1.08] font-semibold mb-5">
+            Merancang Basis Data &amp; Kontrak API<br/>
+            <span class="text-[#7fdbff]">sebagai Jembatan Menuju Backend</span>
+          </h1>
+          <p class="text-[#dce8f0] text-[17px] sm:text-[18px] max-w-xl mb-8">
+            Sumber bacaan interaktif untuk melatih cara berpikir <em>system architect</em>: memetakan data React ke entitas basis data, menormalisasi tabel, merancang kontrak REST API, dan memahami dasar keamanan autentikasi — sebelum satu baris kode backend pun ditulis.
+          </p>
+          <div class="flex flex-wrap gap-3 mb-10">
+            <a href="#erd" class="font-head text-[13px] bg-[var(--amber)] text-[#1c1b1a] px-5 py-2.5 rounded font-semibold hover:brightness-105">Mulai Membaca ↓</a>
+            <a href="#studikasus" class="font-head text-[13px] border border-[#4fc3f7] text-[#7fdbff] px-5 py-2.5 rounded hover:bg-[#123b62]">Lihat Studi Kasus</a>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[#cfe6f5]">
+            <div><div class="font-head text-white text-lg">4</div><div class="text-[11px] font-mono">Topik Inti</div></div>
+            <div><div class="font-head text-white text-lg">14 JP</div><div class="text-[11px] font-mono">Alokasi Waktu</div></div>
+            <div><div class="font-head text-white text-lg">3</div><div class="text-[11px] font-mono">Entitas Studi Kasus</div></div>
+            <div><div class="font-head text-white text-lg">12</div><div class="text-[11px] font-mono">Referensi Valid</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- DEEP LEARNING APPROACH -->
+      <section class="px-6 sm:px-12 py-12 border-b border-[#e5dcc4]">
+        <div class="max-w-3xl mx-auto">
+          <h2 class="font-head text-[22px] font-semibold mb-2">Pendekatan Pembelajaran Mendalam</h2>
+          <p class="text-[15px] text-[var(--ink-dim)] mb-6 max-w-xl">Setiap bagian bacaan ini disusun mengikuti tiga prinsip <em>Deep Learning</em> — klik tiap kartu untuk membaca penerapannya.</p>
+          <div class="grid sm:grid-cols-3 gap-4">
+            <button v-for="d in deepLearning" :key="d.key" @click="dlOpen = dlOpen===d.key ? null : d.key"
+                    class="text-left sheet rounded-lg p-4 transition" :data-tag="d.tag">
+              <div class="font-head font-semibold text-[15px] mb-1">{{ d.title }}</div>
+              <p class="text-[13.5px] text-[var(--ink-dim)]" v-show="dlOpen===d.key">{{ d.desc }}</p>
+              <p class="text-[13px] font-mono text-[#a99f86]" v-show="dlOpen!==d.key">klik untuk membaca →</p>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: ERD ================= -->
+      <section id="erd" class="px-6 sm:px-12 py-14 border-b border-[#e5dcc4]">
+        <div class="max-w-3xl mx-auto">
+          <span class="badge text-[var(--navy-900)] mb-3">LEMBAR 01</span>
+          <h2 class="font-head text-[26px] font-semibold mt-2 mb-4">Analisis Kebutuhan Data &amp; Entity Relationship Diagram</h2>
+          <p class="mb-4">Sebelum menulis kode backend, seorang <em>system architect</em> merancang cetak biru data terlebih dahulu.<sup class="font-mono text-[11px]">[1]</sup> Data statis yang selama ini hidup sebagai array JavaScript di halaman <code class="font-mono text-[13px] bg-[var(--paper-dim)] px-1 rounded">Projects.jsx</code> harus dipetakan menjadi entitas — tabel — di dalam basis data.</p>
+
+          <div class="grid sm:grid-cols-2 gap-4 my-6">
+            <div class="sheet rounded-lg p-4" data-tag="ISTILAH">
+              <ul class="text-[14px] space-y-2 mt-2">
+                <li><strong>Entitas</strong> — objek utama, mis. <code class="font-mono text-[12.5px]">users</code>, <code class="font-mono text-[12.5px]">projects</code>.</li>
+                <li><strong>Atribut</strong> — kolom penyimpan informasi, mis. <code class="font-mono text-[12.5px]">id</code>, <code class="font-mono text-[12.5px]">name</code>.</li>
+                <li><strong>Primary Key</strong> — kunci unik tiap baris.</li>
+                <li><strong>Foreign Key</strong> — kunci tamu penghubung antar-entitas.</li>
+              </ul>
+            </div>
+            <div class="sheet rounded-lg p-4" data-tag="KARDINALITAS">
+              <ul class="text-[14px] space-y-2 mt-2">
+                <li><strong>1:1</strong> — satu baris berpasangan dengan tepat satu baris lain.</li>
+                <li><strong>1:N</strong> — satu <code class="font-mono text-[12.5px]">users</code> memiliki banyak <code class="font-mono text-[12.5px]">projects</code>.</li>
+                <li><strong>N:M</strong> — banyak-ke-banyak, biasanya lewat tabel penghubung.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Interactive ERD diagram -->
+          <div class="sheet rounded-lg p-5 my-8" data-tag="ILUSTRASI · ERD INTERAKTIF">
+            <p class="text-[13px] font-mono text-[var(--ink-dim)] mt-2 mb-4">Klik sebuah tabel untuk melihat detail atribut dan relasinya.</p>
+            <svg viewBox="0 0 720 260" class="w-full h-auto">
+              <line x1="230" y1="90" x2="330" y2="90" stroke="#0b2e4f" stroke-width="2"/>
+              <text x="240" y="82" class="font-mono" font-size="11" fill="#5b564c">1</text>
+              <text x="312" y="82" class="font-mono" font-size="11" fill="#5b564c">N</text>
+              <line x1="470" y1="90" x2="560" y2="150" stroke="#0b2e4f" stroke-width="2" stroke-dasharray="4 3"/>
+              <text x="478" y="115" class="font-mono" font-size="10" fill="#5b564c">opsional</text>
+
+              <g class="erd-box" @click="erdSelected='users'">
+                <rect x="30" y="40" width="200" height="112" rx="6" :fill="erdSelected==='users' ? '#0b2e4f' : '#123b62'" />
+                <rect x="30" y="40" width="200" height="28" rx="6" fill="#dfa526"/>
+                <text x="42" y="59" class="font-head" font-size="13" fill="#1c1b1a" font-weight="600">users</text>
+                <text x="42" y="86" class="font-mono" font-size="11" fill="#ffe9b0">🔑 id (PK)</text>
+                <text x="42" y="103" class="font-mono" font-size="11" fill="#dce8f0">name, email</text>
+                <text x="42" y="120" class="font-mono" font-size="11" fill="#dce8f0">password_hash</text>
+                <text x="42" y="137" class="font-mono" font-size="11" fill="#dce8f0">created_at</text>
+              </g>
+
+              <g class="erd-box" @click="erdSelected='projects'">
+                <rect x="330" y="40" width="220" height="130" rx="6" :fill="erdSelected==='projects' ? '#0b2e4f' : '#123b62'" />
+                <rect x="330" y="40" width="220" height="28" rx="6" fill="#dfa526"/>
+                <text x="342" y="59" class="font-head" font-size="13" fill="#1c1b1a" font-weight="600">projects</text>
+                <text x="342" y="86" class="font-mono" font-size="11" fill="#ffe9b0">🔑 id (PK)</text>
+                <text x="342" y="103" class="font-mono" font-size="11" fill="#bfe0ff">🔗 user_id (FK)</text>
+                <text x="342" y="120" class="font-mono" font-size="11" fill="#dce8f0">title, desc, image_url</text>
+                <text x="342" y="137" class="font-mono" font-size="11" fill="#dce8f0">tech, github_url</text>
+                <text x="342" y="154" class="font-mono" font-size="11" fill="#dce8f0">demo_url</text>
+              </g>
+
+              <g class="erd-box" @click="erdSelected='messages'">
+                <rect x="560" y="130" width="150" height="96" rx="6" :fill="erdSelected==='messages' ? '#0b2e4f' : '#123b62'" opacity="0.9" />
+                <rect x="560" y="130" width="150" height="26" rx="6" fill="#a99f86"/>
+                <text x="572" y="147" class="font-head" font-size="12" fill="#1c1b1a" font-weight="600">messages (opsional)</text>
+                <text x="572" y="172" class="font-mono" font-size="10.5" fill="#ffe9b0">🔑 id (PK)</text>
+                <text x="572" y="189" class="font-mono" font-size="10.5" fill="#dce8f0">name, message</text>
+                <text x="572" y="206" class="font-mono" font-size="10.5" fill="#dce8f0">created_at</text>
+              </g>
+            </svg>
+            <transition name="fade">
+              <div v-if="erdSelected" class="mt-3 p-3 rounded bg-[var(--paper-dim)] text-[13.5px]">
+                <strong class="font-mono">{{ erdSelected }}</strong> — {{ erdNotes[erdSelected] }}
+              </div>
+            </transition>
+          </div>
+
+          <!-- Video illustration -->
+          <div class="my-8">
+            <p class="text-[12.5px] font-mono text-[var(--ink-dim)] mb-2">▶ ILUSTRASI VIDEO — Cara membaca &amp; menggambar ERD</p>
+<div class="video-frame">
+  <video class="w-full h-full" controls>
+    <source src="erd.mp4" type="video/mp4">
+    Browser Anda tidak mendukung tag video.
+  </video>
+</div>
+            </div>
+          </div>
+
+          <!-- Case study: mapping table -->
+          <h3 class="font-head text-[17px] font-semibold mt-8 mb-3">Studi Kasus — Pemetaan Data Portofolio-React</h3>
+          <p class="mb-3 text-[14.5px]">Berikut hasil telaah tim <em>Portofolio-React</em> menelusuri tiap halaman front-end dan menerjemahkan datanya menjadi kebutuhan tabel:</p>
+          <div class="overflow-x-auto">
+            <table class="kv-table w-full border-collapse mb-2">
+              <thead><tr><th>Bagian Proyek React</th><th>Data Saat Ini</th><th>Kebutuhan Basis Data</th></tr></thead>
+              <tbody>
+                <tr v-for="r in erdCaseStudy" :key="r.part">
+                  <td class="font-mono">{{ r.part }}</td>
+                  <td>{{ r.now }}</td>
+                  <td>{{ r.need }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-[13px] text-[var(--ink-dim)]">Sumber acuan pemodelan: E. F. Codd (1970) merumuskan model relasional yang menjadi dasar berpikir "data disimpan dalam tabel yang saling berelasi, bukan satu array besar".<sup class="font-mono">[1]</sup></p>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: NORMALISASI ================= -->
+      <section id="normalisasi" class="px-6 sm:px-12 py-14 border-b border-[#e5dcc4] bg-[var(--paper-dim)]">
+        <div class="max-w-3xl mx-auto">
+          <span class="badge text-[var(--navy-900)] mb-3">LEMBAR 02</span>
+          <h2 class="font-head text-[26px] font-semibold mt-2 mb-4">Normalisasi Basis Data (1NF – 3NF)</h2>
+          <p class="mb-4">Normalisasi menata struktur tabel agar tidak terjadi duplikasi atau anomali data, merujuk pada teori <em>relational model</em> yang dikemukakan E. F. Codd pada 1970.<sup class="font-mono text-[11px]">[1]</sup></p>
+
+          <div class="flex gap-1 mt-6 border-b border-[#d9cfb4]">
+            <div v-for="t in normTabs" :key="t.key" class="tab-btn" :class="{active: normActive===t.key}" @click="normActive=t.key">{{ t.label }}</div>
+          </div>
+          <div class="sheet rounded-b-lg rounded-tr-lg p-5 -mt-px">
+            <div v-if="normActive==='0'">
+              <p class="text-[13.5px] font-mono text-[var(--ink-dim)] mb-3">Tabel <code>projects</code> sebelum dinormalisasi — kolom <code>tech</code> menyimpan beberapa nilai sekaligus.</p>
+              <div class="code-box">id | title          | tech
+1  | Portofolio App | React, Tailwind, Vite
+2  | Toko Daring     | Vue, Laravel, MySQL</div>
+              <p class="text-[13.5px] mt-3 text-[var(--red)]">⚠ Melanggar 1NF: satu sel berisi lebih dari satu nilai (daftar/array dalam sel).</p>
+            </div>
+            <div v-if="normActive==='1'">
+              <p class="text-[13.5px] font-mono text-[var(--ink-dim)] mb-3">1NF — pecah nilai majemuk menjadi tabel penghubung tersendiri.</p>
+              <div class="code-box">projects           project_tech
+id | title           project_id | tech
+1  | Portofolio App  1          | React
+2  | Toko Daring      1          | Tailwind
+                     1          | Vite
+                     2          | Vue
+                     2          | Laravel
+                     2          | MySQL</div>
+              <p class="text-[13.5px] mt-3 text-[var(--green)]">✓ Setiap sel kini bernilai tunggal (atomik).</p>
+            </div>
+            <div v-if="normActive==='2'">
+              <p class="text-[13.5px] font-mono text-[var(--ink-dim)] mb-3">2NF — pastikan kolom non-key sepenuhnya bergantung pada primary key, bukan hanya sebagian (relevan pada primary key gabungan).</p>
+              <div class="code-box">-- primary key gabungan (project_id, tech) TIDAK disarankan
+-- karena nama tech bisa berubah/typo di banyak baris.
+-- Solusi: beri id sendiri + FK ke tabel referensi
+
+project_tech            tech_ref
+id | project_id | tech_id     id | name
+1  | 1          | 1           1  | React
+2  | 1          | 2           2  | Tailwind
+3  | 2          | 3           3  | Vue</div>
+              <p class="text-[13.5px] mt-3 text-[var(--green)]">✓ Kolom <code>name</code> pada <code>tech_ref</code> sepenuhnya bergantung pada <code>id</code>-nya sendiri, bukan pada gabungan kunci.</p>
+            </div>
+            <div v-if="normActive==='3'">
+              <p class="text-[13.5px] font-mono text-[var(--ink-dim)] mb-3">3NF — hilangkan dependensi transitif (kolom yang bergantung pada kolom lain yang bukan primary key).</p>
+              <div class="code-box">-- Sebelum (transitif): users menyimpan nama kampus DAN kode kampus,
+-- padahal kode kampus menentukan nama kampus, bukan id user.
+users(id, name, campus_code, campus_name)   ✗
+
+-- Sesudah:
+users(id, name, campus_code FK)             ✓
+campuses(code, name)                        ✓</div>
+              <p class="text-[13.5px] mt-3 text-[var(--green)]">✓ <code>campus_name</code> dipindah ke tabel <code>campuses</code> — tidak lagi bergantung transitif lewat <code>campus_code</code>.</p>
+            </div>
+          </div>
+
+          <!-- Video illustration -->
+          <div class="my-8">
+            <p class="text-[12.5px] font-mono text-[var(--ink-dim)] mb-2">▶ ILUSTRASI VIDEO — Cara membaca &amp; menggambar ERD</p>
+<div class="video-frame">
+  <video class="w-full h-full" controls>
+    <source src="normalisasi.mp4" type="video/mp4">
+    Browser Anda tidak mendukung tag video.
+  </video>
+</div>
+            </div>
+          </div>
+
+          <!-- ================= BAGIAN TAMBAHAN CONTOH 1NF - 3NF ================= -->
+          <div class="sheet rounded-lg p-6 my-8">
+            <h3 class="font-head text-[17px] font-semibold mb-3 text-[var(--navy-900)]">Video 1: 1NF (Bentuk Normal Pertama)</h3>
+            <p class="text-[14px] mb-2"><span class="badge text-[var(--amber)] border-[var(--amber)] mb-1">Teks Layar</span> <strong>"1NF: 1 Sel = 1 Data. Jangan ditumpuk!"</strong></p>
+            <p class="text-[14px] mb-3">Di tahap ini, kita memberantas sel yang berisi daftar panjang atau "koma-komaan". Setiap kotak di tabel hanya boleh berisi satu informasi tunggal.</p>
+            
+            <p class="text-[13.5px] font-mono text-[var(--red)] mb-2">✗ Sebelum 1NF (Salah - Data Menumpuk):</p>
+            <div class="overflow-x-auto mb-4">
+              <table class="kv-table w-full border-collapse">
+                <thead>
+                  <tr><th>ID Pesanan</th><th>Nama Penyihir</th><th>Bahan Ramuan yang Dibeli</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>P01</td><td>Harry</td><td>Sayap Naga, Bulu Phoenix</td></tr>
+                  <tr><td>P02</td><td>Gandalf</td><td>Debu Bintang, Daun Peri, Batu Es</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="text-[13.5px] font-mono text-[var(--green)] mb-2">✓ Sesudah 1NF (Benar - Data Atomik):</p>
+            <div class="overflow-x-auto mb-8">
+              <table class="kv-table w-full border-collapse">
+                <thead>
+                  <tr><th>ID Pesanan</th><th>Nama Penyihir</th><th>Bahan Ramuan yang Dibeli</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>P01</td><td>Harry</td><td>Sayap Naga</td></tr>
+                  <tr><td>P01</td><td>Harry</td><td>Bulu Phoenix</td></tr>
+                  <tr><td>P02</td><td>Gandalf</td><td>Debu Bintang</td></tr>
+                  <tr><td>P02</td><td>Gandalf</td><td>Daun Peri</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <hr class="border-[#d9cfb4] my-6" />
+
+            <h3 class="font-head text-[17px] font-semibold mb-3 text-[var(--navy-900)]">Video 2: 2NF (Bentuk Normal Kedua)</h3>
+            <p class="text-[14px] mb-2"><span class="badge text-[var(--amber)] border-[var(--amber)] mb-1">Teks Layar</span> <strong>"2NF: Hapus data yang berulang. Pisahkan tabel referensi!"</strong></p>
+            <p class="text-[14px] mb-3">Tabel di 1NF di atas memunculkan masalah baru: nama penyihir ("Harry" dan "Gandalf") ditulis berulang-ulang setiap kali mereka membeli bahan baru. Jika Harry pindah asrama atau ganti nama, kita harus mengedit banyak baris. Pisahkan tabel pesanan dari tabel profil penyihir.</p>
+
+            <p class="text-[13.5px] font-mono text-[var(--navy-900)] mb-2">Tabel Pesanan (Hanya mencatat transaksi):</p>
+            <div class="overflow-x-auto mb-4">
+              <table class="kv-table w-full border-collapse">
+                <thead>
+                  <tr><th>ID Pesanan</th><th>ID Penyihir</th><th>Bahan Ramuan yang Dibeli</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>P01</td><td>W-001</td><td>Sayap Naga</td></tr>
+                  <tr><td>P01</td><td>W-001</td><td>Bulu Phoenix</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="text-[13.5px] font-mono text-[var(--navy-900)] mb-2">Tabel Master Penyihir (Tidak ada lagi data profil yang berulang di pesanan):</p>
+            <div class="overflow-x-auto mb-8">
+              <table class="kv-table w-full border-collapse">
+                <thead>
+                  <tr><th>ID Penyihir</th><th>Nama Penyihir</th><th>Tingkat Sihir</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>W-001</td><td>Harry</td><td>Pemula</td></tr>
+                  <tr><td>W-002</td><td>Gandalf</td><td>Grandmaster</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <hr class="border-[#d9cfb4] my-6" />
+
+            <h3 class="font-head text-[17px] font-semibold mb-3 text-[var(--navy-900)]">Video 3: 3NF (Bentuk Normal Ketiga)</h3>
+            <p class="text-[14px] mb-2"><span class="badge text-[var(--amber)] border-[var(--amber)] mb-1">Teks Layar</span> <strong>"3NF: Hapus ketergantungan antar kolom biasa. Buat tabel master!"</strong></p>
+            <p class="text-[14px] mb-3">Fokus pada tabel master penyihir. Misalkan kita menambahkan alamat mereka. Aturan 3NF melarang sebuah kolom bergantung pada kolom lain yang bukan Primary Key (ID).</p>
+
+            <p class="text-[13.5px] font-mono text-[var(--red)] mb-2">✗ Sebelum 3NF (Salah - Ada Ketergantungan Transitif):</p>
+            <div class="overflow-x-auto mb-4">
+              <table class="kv-table w-full border-collapse">
+                <thead>
+                  <tr><th>ID Penyihir</th><th>Nama Penyihir</th><th>Kode Pos</th><th>Nama Kota</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>W-001</td><td>Harry</td><td>55001</td><td>Kota Hogwarts</td></tr>
+                  <tr><td>W-002</td><td>Gandalf</td><td>99002</td><td>Kota Rivendell</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="text-[14px] mb-4">Masalahnya, <strong>Nama Kota</strong> (Kota Hogwarts) itu bergantung pada <strong>Kode Pos</strong> (55001), bukan bergantung pada identitas si Harry (ID Penyihir). Jika ada 100 penyihir dari kode pos 55001, kita akan mengetik "Kota Hogwarts" 100 kali. Pisahkan lokasi ini menjadi tabel master tersendiri.</p>
+
+            <p class="text-[13.5px] font-mono text-[var(--green)] mb-2">✓ Sesudah 3NF (Benar):</p>
+            <p class="text-[13px] font-bold mb-1">Tabel Penyihir:</p>
+            <div class="overflow-x-auto mb-3">
+              <table class="kv-table w-full border-collapse">
+                <thead>
+                  <tr><th>ID Penyihir</th><th>Nama Penyihir</th><th>Kode Pos</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>W-001</td><td>Harry</td><td>55001</td></tr>
+                  <tr><td>W-002</td><td>Gandalf</td><td>99002</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="text-[13px] font-bold mb-1">Tabel Master Lokasi:</p>
+            <div class="overflow-x-auto">
+              <table class="kv-table w-full border-collapse">
+                <thead>
+                  <tr><th>Kode Pos</th><th>Nama Kota</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>55001</td><td>Kota Hogwarts</td></tr>
+                  <tr><td>99002</td><td>Kota Rivendell</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- ================= AKHIR BAGIAN TAMBAHAN ================= -->
+
+          <h3 class="font-head text-[17px] font-semibold mt-8 mb-3">Interaktif — Uji Pemeriksaan Normalisasi (LK-6)</h3>
+          <p class="text-[14px] mb-3">Terapkan checklist ini pada rancangan tabel kalian sendiri:</p>
+          <div class="sheet rounded-lg p-4" data-tag="CHECKLIST">
+            <label v-for="(c,i) in normChecklist" :key="i" class="flex items-start gap-2 py-1.5 text-[14px] mt-2">
+              <input type="checkbox" v-model="c.checked" class="chk mt-1"/>
+              <span>{{ c.text }}</span>
+            </label>
+            <div class="mt-3 text-[13px] font-mono" :class="normDone===normChecklist.length ? 'text-[var(--green)]' : 'text-[var(--ink-dim)]'">
+              {{ normDone }} / {{ normChecklist.length }} terpenuhi
+              <span v-if="normDone===normChecklist.length"> — rancangan tabel lulus 3NF ✓</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: REST API ================= -->
+      <section id="restapi" class="px-6 sm:px-12 py-14 border-b border-[#e5dcc4]">
+        <div class="max-w-3xl mx-auto">
+          <span class="badge text-[var(--navy-900)] mb-3">LEMBAR 03</span>
+          <h2 class="font-head text-[26px] font-semibold mt-2 mb-4">Merancang Kontrak REST API</h2>
+          <p class="mb-4">REST (<em>Representational State Transfer</em>) adalah gaya arsitektur layanan web yang dirumuskan Roy Fielding dalam disertasi doktoralnya di University of California, Irvine tahun 2000.<sup class="font-mono text-[11px]">[2]</sup> Kontrak API mendefinisikan endpoint, format <em>request body</em>, dan <em>response</em> yang disepakati front-end dan backend.</p>
+
+          <h3 class="font-head text-[16px] font-semibold mt-6 mb-2">Metode HTTP</h3>
+          <div class="overflow-x-auto mb-6">
+            <table class="kv-table w-full border-collapse">
+              <thead><tr><th>Metode</th><th>Fungsi</th></tr></thead>
+              <tbody>
+                <tr v-for="m in httpMethods" :key="m.method">
+                  <td class="font-mono" :class="'method-'+m.method.replace('/PATCH','')">{{ m.method }}</td>
+                  <td>{{ m.fn }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 class="font-head text-[16px] font-semibold mt-6 mb-2">Kode Status HTTP</h3>
+          <div class="overflow-x-auto mb-4">
+            <table class="kv-table w-full border-collapse">
+              <thead><tr><th>Kode</th><th>Arti</th></tr></thead>
+              <tbody>
+                <tr v-for="s in httpStatus" :key="s.code">
+                  <td class="font-mono">{{ s.code }}</td>
+                  <td>{{ s.meaning }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-[13px] text-[var(--ink-dim)] mb-8">Perhatikan: <strong>401</strong> berarti server belum tahu siapa Anda (belum/salah login), sedangkan <strong>403</strong> berarti server sudah tahu siapa Anda tetapi tidak mengizinkan akses.</p>
+
+          <div class="image-frame" onclick="openImageModal('Restapi.png')">
+          <img class="w-full h-full image-hover-zoom" src="Restapi.png" alt="Entity Relationship Diagram" title="Entity Relationship Diagram">
+        </div>
+
+        <!-- Modal untuk zoom gambar -->
+        <div id="imageModal" class="image-modal" onclick="closeImageModal(event)">
+          <span class="image-modal-close" onclick="closeImageModal(event)">&times;</span>
+          <div class="image-modal-content-wrapper">
+            <img id="modalImage" class="image-modal-content" src="" alt="Zoom view">
+          </div>
+        </div>
+
+          <h3 class="font-head text-[17px] font-semibold mt-8 mb-3">Dokumentasi Kontrak API — Studi Kasus Portofolio-React</h3>
+          <p class="text-[14px] mb-3">Konvensi penamaan REST menggunakan kata benda jamak pada <em>path</em> (mis. <code class="font-mono text-[12.5px]">/api/projects</code>, bukan <code class="font-mono text-[12.5px]">/api/getProject</code>). Berikut kontrak lengkap hasil rekayasa, melanjutkan tiga baris contoh pada LK-8:</p>
+          <div class="overflow-x-auto mb-3">
+            <table class="kv-table w-full border-collapse text-[12.8px]">
+              <thead><tr><th>Metode</th><th>Path</th><th>Token?</th><th>Request Body</th><th>Response</th></tr></thead>
+              <tbody>
+                <tr v-for="e in apiContract" :key="e.path+e.method">
+                  <td class="font-mono" :class="'method-'+e.method.replace('/PATCH','')">{{ e.method }}</td>
+                  <td class="font-mono">{{ e.path }}</td>
+                  <td>{{ e.token ? '🔒 Ya' : 'Tidak' }}</td>
+                  <td class="font-mono">{{ e.body }}</td>
+                  <td class="font-mono">{{ e.resp }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-[13px] text-[var(--ink-dim)]">Kematangan desain API ini dapat ditelaah lebih lanjut memakai <em>Richardson Maturity Model</em> (Fowler, 2010),<sup class="font-mono">[3]</sup> yang menilai API dari level 0 (satu endpoint RPC) hingga level 3 (HATEOAS).</p>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: KEAMANAN ================= -->
+      <section id="keamanan" class="px-6 sm:px-12 py-14 border-b border-[#e5dcc4] bg-[var(--paper-dim)]">
+        <div class="max-w-3xl mx-auto">
+          <span class="badge text-[var(--navy-900)] mb-3">LEMBAR 04</span>
+          <h2 class="font-head text-[26px] font-semibold mt-2 mb-4">Dasar Keamanan Autentikasi</h2>
+          <p class="mb-4">Simulasi login memakai <code class="font-mono text-[13px] bg-[var(--paper)] px-1 rounded">localStorage</code> tidak aman untuk lingkungan sungguhan. Dua prinsip dasar menggantikannya:</p>
+
+          <div class="grid sm:grid-cols-2 gap-4 my-6">
+            <div class="sheet rounded-lg p-4" data-tag="HASHING">
+              <p class="text-[14px] mt-2">Password <strong>tidak pernah</strong> disimpan sebagai teks biasa. <em>Hashing</em> (mis. bcrypt) mengubahnya menjadi string acak satu-arah yang mustahil dikembalikan ke bentuk asal.</p>
+              <div class="code-box mt-3 text-[11.5px]">password: "rahasia123"
+      ↓ bcrypt.hash()
+hash: "$2b$10$KIx9F3q...J8mZ2e"</div>
+            </div>
+            <div class="sheet rounded-lg p-4" data-tag="JWT">
+              <p class="text-[14px] mt-2">JSON Web Token dikeluarkan server setelah login berhasil.<sup class="font-mono text-[11px]">[4]</sup> Klien menyertakannya di <em>header</em> permintaan berikutnya, tanpa mengirim ulang email/password.</p>
+              <div class="code-box mt-3 text-[11.5px]">header.payload.signature
+eyJhbGci...  eyJpZCI6...  SflKxwRJ...</div>
+            </div>
+          </div>
+
+          <!-- Interactive JWT flow -->
+          <div class="sheet rounded-lg p-5 my-8" data-tag="ALUR · KLIK UNTUK LANGKAH BERIKUTNYA">
+            <div class="flex items-center justify-between mt-2 mb-4">
+              <p class="text-[13.5px] font-mono text-[var(--ink-dim)]">Alur Autentikasi JWT</p>
+              <button @click="jwtStep = (jwtStep+1) % jwtSteps.length" class="font-head text-[12.5px] bg-[var(--navy-900)] text-white px-3 py-1.5 rounded">Langkah berikutnya →</button>
+            </div>
+            <div class="flex flex-wrap gap-2 mb-4">
+              <div v-for="(s,i) in jwtSteps" :key="i"
+                   class="px-3 py-2 rounded text-[12.5px] font-mono border"
+                   :class="i===jwtStep ? 'bg-[var(--navy-900)] text-white border-[var(--navy-900)]' : 'text-[var(--ink-dim)] border-[#d9cfb4]'">
+                {{ i+1 }}. {{ s.label }}
+              </div>
+            </div>
+            <p class="text-[14px]">{{ jwtSteps[jwtStep].desc }}</p>
+          </div>
+
+  <div class="image-frame" onclick="openImageModal('jwt.png')">
+          <img class="w-full h-full image-hover-zoom" src="jwt.png" alt="Entity Relationship Diagram" title="Entity Relationship Diagram">
+        </div>
+
+        <!-- Modal untuk zoom gambar -->
+        <div id="imageModal" class="image-modal" onclick="closeImageModal(event)">
+          <span class="image-modal-close" onclick="closeImageModal(event)">&times;</span>
+          <div class="image-modal-content-wrapper">
+            <img id="modalImage" class="image-modal-content" src="" alt="Zoom view">
+          </div>
+        </div>
+
+          <p class="text-[13px] text-[var(--ink-dim)]">Praktik ini mengikuti panduan resmi JWT.io<sup class="font-mono">[4]</sup> dan OWASP REST Security Cheat Sheet.<sup class="font-mono">[5]</sup></p>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: STUDI KASUS ================= -->
+      <section id="studikasus" class="px-6 sm:px-12 py-14 border-b border-[#e5dcc4]">
+        <div class="max-w-3xl mx-auto">
+          <span class="badge text-[var(--navy-900)] mb-3">LEMBAR 05 · TERSELESAIKAN</span>
+          <h2 class="font-head text-[26px] font-semibold mt-2 mb-4">Studi Kasus Utuh — Endpoint Login Portofolio-React</h2>
+          <p class="mb-4">Contoh penyelesaian penuh LK-9: satu <em>request</em> dan dua kemungkinan <em>response</em> untuk endpoint <code class="font-mono text-[13px] bg-[var(--paper-dim)] px-1 rounded">POST /api/auth/login</code>.</p>
+
+          <div class="flex gap-1 mt-6 border-b border-[#d9cfb4]">
+            <div class="tab-btn" :class="{active: caseTab==='req'}" @click="caseTab='req'">Request</div>
+            <div class="tab-btn" :class="{active: caseTab==='ok'}" @click="caseTab='ok'">Response 200 OK</div>
+            <div class="tab-btn" :class="{active: caseTab==='err'}" @click="caseTab='err'">Response 401 Error</div>
+          </div>
+          <div class="sheet rounded-b-lg rounded-tr-lg p-5 -mt-px">
+            <div v-if="caseTab==='req'" class="code-box">POST /api/auth/login
+Content-Type: application/json
+
+{
+  "email": "aji@portofolio.dev",
+  "password": "rahasia123"
+}</div>
+            <div v-if="caseTab==='ok'" class="code-box">HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 4,
+    "name": "Aji Pratama",
+    "email": "aji@portofolio.dev"
+  }
+}</div>
+            <div v-if="caseTab==='err'" class="code-box">HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+
+{
+  "error": "Email atau password salah"
+}</div>
+          </div>
+          <p class="text-[13px] text-[var(--ink-dim)] mt-3">Bahan Refleksi (LK-9): bila kolom <code class="font-mono text-[12px]">email</code> kosong, response sebaiknya <strong>400 Bad Request</strong> dengan pesan validasi yang jelas — bukan 401, karena kesalahannya ada pada bentuk permintaan, bukan kredensial.</p>
+
+          <h3 class="font-head text-[17px] font-semibold mt-10 mb-3">Kesalahan Umum yang Dihindari</h3>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div v-for="(p,i) in commonMistakes" :key="i" class="sheet rounded-lg p-4">
+              <p class="text-[13.5px] text-[var(--red)] font-mono mb-1">✗ {{ p.wrong }}</p>
+              <p class="text-[13.5px] text-[var(--green)] font-mono">✓ {{ p.right }}</p>
+            </div>
+          </div>
+
+          <h3 class="font-head text-[17px] font-semibold mt-10 mb-3">Refleksi Bloom C2 → C6</h3>
+          <div class="overflow-x-auto">
+            <table class="kv-table w-full border-collapse">
+              <thead><tr><th>Tahap</th><th>Bukti pada Studi Kasus Ini</th></tr></thead>
+              <tbody>
+                <tr v-for="b in bloomRows" :key="b.tahap">
+                  <td class="font-mono">{{ b.tahap }}</td>
+                  <td>{{ b.bukti }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: GLOSARIUM ================= -->
+      <section id="glosarium" class="px-6 sm:px-12 py-14 border-b border-[#e5dcc4] bg-[var(--paper-dim)]">
+        <div class="max-w-3xl mx-auto">
+          <h2 class="font-head text-[22px] font-semibold mb-5">Glosarium</h2>
+          <div class="grid sm:grid-cols-2 gap-x-8 gap-y-3">
+            <div v-for="g in glossary" :key="g.term">
+              <span class="font-head font-semibold text-[14px]">{{ g.term }}</span>
+              <span class="text-[13.5px] text-[var(--ink-dim)]"> — {{ g.def }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: REFERENSI ================= -->
+      <section id="referensi" class="px-6 sm:px-12 py-14">
+        <div class="max-w-3xl mx-auto">
+          <h2 class="font-head text-[22px] font-semibold mb-5">Referensi</h2>
+          <ol class="text-[13.8px] space-y-3 list-decimal pl-5">
+            <li v-for="(r,i) in references" :key="i" v-html="r"></li>
+          </ol>
+          <p class="text-[12.5px] text-[var(--ink-dim)] mt-8 font-mono">Disusun untuk Pembelajaran Murid — Rekayasa Perangkat Lunak, Fase F-1 · Guru Pengampu: Mufti Adiyatma, A.Md.Kom</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+</div>
+
+<script>
+const { createApp, reactive, computed, onMounted, onUnmounted, ref } = Vue;
+
+createApp({
+  setup(){
+    const mobileNavOpen = ref(false);
+    const scrollPct = ref(0);
+    const activeSection = ref('beranda');
+    const erdSelected = ref(null);
+    const dlOpen = ref('mindful');
+    const normActive = ref('0');
+    const caseTab = ref('req');
+    const jwtStep = ref(0);
+
+    const sections = [
+      {id:'beranda', label:'Beranda'},
+      {id:'erd', label:'01 · ERD & Entitas'},
+      {id:'normalisasi', label:'02 · Normalisasi'},
+      {id:'restapi', label:'03 · Kontrak REST API'},
+      {id:'keamanan', label:'04 · Keamanan Autentikasi'},
+      {id:'studikasus', label:'05 · Studi Kasus'},
+      {id:'glosarium', label:'Glosarium'},
+      {id:'referensi', label:'Referensi'},
+    ];
+
+    const deepLearning = [
+      {key:'mindful', tag:'MINDFUL', title:'Mindful — Berkesadaran', desc:'Peserta didik diajak sadar bahwa data yang selama ini berbentuk array statis di React sesungguhnya harus disimpan dan dikelola secara permanen — merancang "mengapa" sebuah tabel dibutuhkan sebelum menulis kode backend.'},
+      {key:'meaningful', tag:'MEANINGFUL', title:'Meaningful — Bermakna', desc:'Rancangan basis data dan API ini adalah fondasi langsung bagi portofolio pribadi peserta didik, sekaligus melatih keterampilan system design yang ditransfer ke proyek nyata dan dunia kerja.'},
+      {key:'joyful', tag:'JOYFUL', title:'Joyful — Menggembirakan', desc:'Proses merancang dikemas sebagai peran "system architect" dalam tim pengembang, lengkap dengan diskusi bersama dan telaah sejawat atas rancangan ERD.'},
+    ];
+
+    const erdNotes = {
+      users: 'Menyimpan akun pengguna. password_hash — bukan password polos — dan menjadi induk relasi 1:N ke projects.',
+      projects: 'Setiap baris memiliki user_id sebagai foreign key ke users, mewujudkan relasi "satu pengguna memiliki banyak proyek".',
+      messages: 'Entitas opsional untuk mengembangkan form kontak agar pesan tersimpan permanen, bukan sekadar ditampilkan sebagai konfirmasi.'
+    };
+
+    const erdCaseStudy = [
+      {part:'Login.jsx / AuthContext.jsx', now:'Status login disimulasikan localStorage; nama diambil dari email', need:'Tabel users (id, name, email, password_hash, created_at)'},
+      {part:'Projects.jsx / ProjectCard.jsx', now:'Array projects statis: title, desc, image, tech, githubUrl, demoUrl', need:'Tabel projects (id, user_id FK, title, desc, image_url, tech, github_url, demo_url)'},
+      {part:'Contact.jsx', now:'Form nama & pesan hanya ditampilkan, tidak disimpan', need:'Tabel messages (id, name, message, created_at) — opsional'},
+      {part:'Dashboard.jsx / Profile.jsx', now:'Data user ditampilkan dari Context (in-memory)', need:'Diambil dari tabel users via endpoint terautentikasi (JWT)'},
+    ];
+
+    const normTabs = [
+      {key:'0', label:'Sebelum'},
+      {key:'1', label:'1NF'},
+      {key:'2', label:'2NF'},
+      {key:'3', label:'3NF'},
+    ];
+
+    const normChecklist = reactive([
+      {text:'Setiap kolom hanya berisi satu nilai (tidak ada daftar/array dalam satu sel).', checked:false},
+      {text:'Setiap kolom bukan primary key sepenuhnya bergantung pada primary key.', checked:false},
+      {text:'Tidak ada kolom yang bergantung pada kolom lain yang bukan primary key.', checked:false},
+    ]);
+    const normDone = computed(() => normChecklist.filter(c=>c.checked).length);
+
+    const httpMethods = [
+      {method:'GET', fn:'Mengambil data tanpa mengubah statusnya.'},
+      {method:'POST', fn:'Membuat entitas atau data baru di server.'},
+      {method:'PUT/PATCH', fn:'Memperbarui data (PUT seluruh data, PATCH sebagian).'},
+      {method:'DELETE', fn:'Menghapus data spesifik.'},
+    ];
+
+    const httpStatus = [
+      {code:'200 OK', meaning:'Permintaan berhasil.'},
+      {code:'201 Created', meaning:'Data baru berhasil dibuat.'},
+      {code:'400 Bad Request', meaning:'Data yang dikirim tidak valid.'},
+      {code:'401 Unauthorized', meaning:'Belum login / token tidak valid.'},
+      {code:'403 Forbidden', meaning:'Token valid, tetapi tidak berhak mengakses data ini.'},
+      {code:'404 Not Found', meaning:'Data/alamat tidak ditemukan.'},
+      {code:'500 Internal Server Error', meaning:'Server mengalami kesalahan tak terduga.'},
+    ];
+
+    const apiContract = [
+      {method:'POST', path:'/api/auth/register', token:false, body:'{ name, email, password }', resp:'{ id, name, email }'},
+      {method:'POST', path:'/api/auth/login', token:false, body:'{ email, password }', resp:'{ token, user }'},
+      {method:'GET', path:'/api/projects', token:false, body:'—', resp:'[{ id, title, ... }]'},
+      {method:'GET', path:'/api/projects/:id', token:false, body:'—', resp:'{ id, title, desc, ... }'},
+      {method:'POST', path:'/api/projects', token:true, body:'{ title, desc, tech, ... }', resp:'{ id, title, ... }'},
+      {method:'PUT', path:'/api/projects/:id', token:true, body:'{ title, desc, ... }', resp:'{ id, title, ... }'},
+      {method:'DELETE', path:'/api/projects/:id', token:true, body:'—', resp:'{ message: "deleted" }'},
+      {method:'GET', path:'/api/dashboard', token:true, body:'—', resp:'{ user, projectsCount }'},
+      {method:'POST', path:'/api/messages', token:false, body:'{ name, message }', resp:'{ id, name, message }'},
+    ];
+
+    const jwtSteps = [
+      {label:'Login', desc:'Klien mengirim POST /api/auth/login berisi email dan password.'},
+      {label:'Verifikasi', desc:'Server mencocokkan password dengan password_hash tersimpan menggunakan bcrypt.compare().'},
+      {label:'Terbitkan Token', desc:'Jika cocok, server membuat JWT berisi identitas pengguna dan mengirimkannya di response.'},
+      {label:'Simpan Token', desc:'Klien menyimpan token (menggantikan simulasi localStorage sebelumnya) untuk dipakai ulang.'},
+      {label:'Request Terproteksi', desc:'Setiap permintaan ke endpoint yang dilindungi menyertakan token pada header Authorization.'},
+      {label:'Verifikasi Token', desc:'Server memverifikasi tanda tangan token sebelum mengizinkan akses — tanpa perlu email/password lagi.'},
+    ];
+
+    const commonMistakes = [
+      {wrong:'Menyimpan password sebagai teks biasa', right:'Hash password dengan bcrypt sebelum disimpan'},
+      {wrong:'/api/getProjects (kata kerja pada path)', right:'/api/projects (kata benda jamak)'},
+      {wrong:'Lupa foreign key user_id pada data terkait', right:'Sertakan FK agar data terhubung ke pemiliknya'},
+      {wrong:'Endpoint sensitif tanpa tanda butuh token', right:'Tandai eksplisit endpoint mana yang memerlukan JWT'},
+    ];
+
+    const bloomRows = [
+      {tahap:'C2 — Memahami', bukti:'Menjelaskan fungsi metode HTTP, kode status, hashing, dan JWT dengan bahasa sendiri.'},
+      {tahap:'C3 — Menerapkan', bukti:'Menyusun entitas dan endpoint sesuai kaidah REST dan normalisasi.'},
+      {tahap:'C4 — Menganalisis', bukti:'Memetakan data front-end ke entitas dan memeriksa hasil normalisasi.'},
+      {tahap:'C6 — Mencipta', bukti:'Merekayasa ERD dan kontrak API orisinal untuk kebutuhan proyek.'},
+    ];
+
+    const glossary = [
+      {term:'ERD', def:'Skema yang menunjukkan entitas beserta atribut dan relasinya dalam basis data.'},
+      {term:'Primary Key', def:'Kolom bernilai unik, identitas utama tiap baris data.'},
+      {term:'Foreign Key', def:'Kolom yang mengacu ke primary key tabel lain untuk membentuk relasi.'},
+      {term:'Normalisasi', def:'Proses menata struktur tabel agar tidak terjadi duplikasi/anomali data.'},
+      {term:'REST API', def:'Gaya arsitektur layanan web yang diakses lewat endpoint dengan metode HTTP standar.'},
+      {term:'Endpoint', def:'Alamat tertentu pada API yang dapat diakses klien, contoh /api/projects.'},
+      {term:'Hashing', def:'Mengubah data menjadi kode acak satu-arah yang tak dapat dikembalikan ke bentuk asal.'},
+      {term:'JWT', def:'Token terenkripsi yang dikeluarkan server setelah login berhasil untuk membuktikan identitas.'},
+    ];
+
+    const references = [
+      'Codd, E. F. (1970). <em>A Relational Model of Data for Large Shared Data Banks</em>. Communications of the ACM, 13(6), 377–387.',
+      'Fielding, R. T. (2000). <em>Architectural Styles and the Design of Network-based Software Architectures</em> (Disertasi Doktoral, University of California, Irvine).',
+      'Fowler, M. (2010). <em>Richardson Maturity Model</em>. martinfowler.com.',
+      'Anderson, L. W., &amp; Krathwohl, D. R. (Eds.). (2001). <em>A Taxonomy for Learning, Teaching, and Assessing: A Revision of Bloom&rsquo;s Taxonomy of Educational Objectives</em>. Longman.',
+      'MySQL 8.0 Reference Manual. dev.mysql.com.',
+      'Sequelize — Dokumentasi resmi ORM. sequelize.org.',
+      'Express.js — Dokumentasi resmi. expressjs.com.',
+      'JWT.io — Introduction to JSON Web Tokens. jwt.io.',
+      'OWASP — REST Security Cheat Sheet. cheatsheetseries.owasp.org.',
+      'Postman Learning Center. learning.postman.com.',
+      'dbdiagram.io — Alat bantu perancangan ERD daring.',
+      'Kementerian Pendidikan Dasar dan Menengah RI. Panduan Pembelajaran Mendalam (Deep Learning), berdasarkan Peraturan Menteri Pendidikan Dasar dan Menengah Nomor 13 Tahun 2025.',
+    ];
+
+    let onScroll;
+    onMounted(() => {
+      onScroll = () => {
+        const h = document.documentElement;
+        const max = h.scrollHeight - h.clientHeight;
+        scrollPct.value = max > 0 ? (h.scrollTop / max) * 100 : 0;
+        let current = sections[0].id;
+        for (const s of sections) {
+          const el = document.getElementById(s.id);
+          if (el && el.getBoundingClientRect().top < 140) current = s.id;
+        }
+        activeSection.value = current;
+      };
+      window.addEventListener('scroll', onScroll, {passive:true});
+      onScroll();
+    });
+    onUnmounted(() => window.removeEventListener('scroll', onScroll));
+
+    return {
+      mobileNavOpen, scrollPct, activeSection, sections, deepLearning, dlOpen,
+      erdSelected, erdNotes, erdCaseStudy,
+      normTabs, normActive, normChecklist, normDone,
+      httpMethods, httpStatus, apiContract,
+      jwtStep, jwtSteps,
+      caseTab, commonMistakes, bloomRows,
+      glossary, references,
+    };
+  }
+}).mount('#app');
+
+let currentZoom = 1;
+let isDragging = false;
+let startX, startY, translateX = 0, translateY = 0;
+
+function openImageModal(src) {
+  const modal = document.getElementById('imageModal');
+  const modalImg = document.getElementById('modalImage');
+  modalImg.src = src;
+  currentZoom = 1;
+  translateX = 0;
+  translateY = 0;
+  updateTransform(modalImg);
+  modal.classList.add('active');
+}
+
+function closeImageModal(event) {
+  // Tutup hanya jika klik di area luar gambar atau tombol close
+  if (event.target.id === 'imageModal' || event.target.classList.contains('image-modal-close')) {
+    document.getElementById('imageModal').classList.remove('active');
+  }
+}
+
+function updateTransform(img) {
+  img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+}
+
+// Preventif klik kanan
+document.addEventListener('contextmenu', function (e) {
+  e.preventDefault();
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+  const modalImg = document.getElementById('modalImage');
+
+  // Zoom in/out dengan scroll wheel
+  modalImg.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    const zoomStep = 0.1;
+    if (e.deltaY < 0) {
+      currentZoom += zoomStep; // zoom in
+    } else {
+      currentZoom -= zoomStep; // zoom out
+    }
+    currentZoom = Math.min(Math.max(1, currentZoom), 5); // batas zoom 1x - 5x
+    if (currentZoom === 1) { translateX = 0; translateY = 0; }
+    updateTransform(modalImg);
+  });
+
+  // Drag untuk geser gambar saat di-zoom
+  modalImg.addEventListener('mousedown', function (e) {
+    if (currentZoom > 1) {
+      isDragging = true;
+      startX = e.clientX - translateX;
+      startY = e.clientY - translateY;
+    }
+  });
+
+  document.addEventListener('mousemove', function (e) {
+    if (isDragging) {
+      translateX = e.clientX - startX;
+      translateY = e.clientY - startY;
+      updateTransform(modalImg);
+    }
+  });
+
+  document.addEventListener('mouseup', function () {
+    isDragging = false;
+  });
+
+  // Double click untuk toggle zoom cepat
+  modalImg.addEventListener('dblclick', function () {
+    if (currentZoom === 1) {
+      currentZoom = 2;
+    } else {
+      currentZoom = 1;
+      translateX = 0;
+      translateY = 0;
+    }
+    updateTransform(modalImg);
+  });
+});
+</script>
+</body>
+</html>
